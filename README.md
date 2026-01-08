@@ -1,75 +1,69 @@
-# E-Commerce Backend
+# E-Commerce Full-Stack Application
 
-A full-featured e-commerce backend built with Node.js, TypeScript, Prisma, PostgreSQL, and Stripe payment integration.
-
-## Features
-
-- ✅ **User Authentication** - JWT-based authentication with role-based access (Admin/User)
-- ✅ **Product Management** - Full CRUD operations for products (Admin only for create/update/delete)
-- ✅ **Shopping Cart** - Add, update, remove items from cart
-- ✅ **Order Management** - Create orders from cart, track order status
-- ✅ **Payment Integration** - Stripe payment processing
-- ✅ **Role-Based Access Control** - Admin and User roles with appropriate permissions
-
-## Tech Stack
-
-- **Runtime**: Node.js
-- **Language**: TypeScript
-- **Framework**: Express.js
-- **ORM**: Prisma
-- **Database**: PostgreSQL
-- **Authentication**: JWT (jsonwebtoken)
-- **Payment**: Stripe
-- **Password Hashing**: bcryptjs
+A complete e-commerce application with Node.js + TypeScript backend and Streamlit frontend.
 
 ## Project Structure
 
 ```
-src/
-├── controllers/          # Route handlers (controllers)
-│   ├── auth/
-│   │   └── index.ts      # Authentication routes
-│   ├── product/
-│   │   └── index.ts      # Product routes
-│   ├── cart/
-│   │   └── index.ts      # Cart routes
-│   ├── order/
-│   │   └── index.ts      # Order routes
-│   └── payment/
-│       └── index.ts      # Payment routes
-├── services/             # Business logic layer
-│   ├── product.ts
-│   ├── cart.ts
-│   ├── order.ts
-│   └── payment.ts
-├── routes/               # Main router
-│   └── index.ts         # Aggregates all routes
-├── middlewares/          # Express middlewares
-│   ├── auth.ts          # Authentication & authorization
-│   └── errorHandler.ts  # Global error handler
-├── utils/                # Utility functions
-│   ├── jwt.ts           # JWT token utilities
-│   └── password.ts       # Password hashing utilities
-├── config/               # Configuration files
-│   └── prisma.ts        # Prisma client instance
-├── prisma/               # Prisma schema
-│   └── schema.prisma
-└── bin/
-    └── www              # Server entry point
+.
+├── backend/              # Backend API (Node.js + TypeScript + Prisma)
+│   ├── src/
+│   │   ├── controllers/ # Route handlers
+│   │   ├── services/     # Business logic
+│   │   ├── routes/       # API routes
+│   │   ├── middlewares/  # Express middlewares
+│   │   ├── utils/        # Utility functions
+│   │   ├── config/       # Configuration
+│   │   └── prisma/       # Prisma schema
+│   ├── package.json
+│   └── tsconfig.json
+├── frontend/             # Frontend (Streamlit)
+│   ├── app.py           # Main Streamlit application
+│   ├── requirements.txt
+│   └── README.md
+├── package.json         # Root package.json (for convenience scripts)
+└── README.md           # This file
 ```
 
-## Setup Instructions
+## Features
 
-### 1. Install Dependencies
+### Backend
+- ✅ User Authentication (JWT)
+- ✅ Product CRUD (Admin only for create/update/delete)
+- ✅ Shopping Cart
+- ✅ Order Management
+- ✅ Stripe Payment Integration
+- ✅ Role-Based Access Control (Admin/User)
 
+### Frontend
+- ✅ User Authentication (Login/Register)
+- ✅ Product Browsing
+- ✅ Shopping Cart Management
+- ✅ Order History
+- ✅ Checkout Process
+
+## Quick Start
+
+### Backend Setup
+
+1. Navigate to backend directory:
+```bash
+cd backend
+```
+
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-### 2. Environment Variables
+3. Create `.env` file in `backend/` directory (copy from `backend/.env.example`):
+```bash
+cd backend
+cp .env.example .env
+# Then edit .env with your actual values
+```
 
-Create a `.env` file in the root directory:
-
+Required environment variables:
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/ecommerce_db?schema=public"
 JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
@@ -77,50 +71,61 @@ STRIPE_SECRET_KEY="sk_test_your_stripe_secret_key"
 PORT=3000
 ```
 
-### 3. Database Setup
-
+4. Setup database:
 ```bash
-# Generate Prisma Client
 npm run generate
-
-# Run migrations
 npm run migrate
 ```
 
-### 4. Build Project
-
-```bash
-npm run build
-```
-
-This will:
-- Run Prisma migrations
-- Generate Prisma Client
-- Compile TypeScript to JavaScript in `dist/` folder
-
-### 5. Run Development Server
-
+5. Run backend:
 ```bash
 npm run dev
 ```
 
-Or for production:
+Backend will run on `http://localhost:3000`
+
+### Frontend Setup
+
+1. Navigate to frontend directory:
+```bash
+cd frontend
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Run Streamlit app:
+```bash
+streamlit run app.py
+```
+
+Frontend will run on `http://localhost:8501`
+
+## Root Level Scripts
+
+From the root directory, you can use:
 
 ```bash
-npm start
+# Run backend in dev mode
+npm run dev
+
+# Run frontend
+npm run frontend
+
+# Build backend
+npm run build
 ```
 
 ## API Endpoints
 
 ### Authentication (`/api/auth`)
-
-- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login user
 - `GET /api/auth/me` - Get current user (requires auth)
-- `GET /api/auth/admin-only` - Admin only endpoint (requires admin role)
 
 ### Products (`/api/products`)
-
 - `GET /api/products` - Get all products
 - `GET /api/products/:id` - Get product by ID
 - `POST /api/products` - Create product (Admin only)
@@ -128,51 +133,49 @@ npm start
 - `DELETE /api/products/:id` - Delete product (Admin only)
 
 ### Cart (`/api/cart`)
-
 - `GET /api/cart` - Get user's cart (requires auth)
 - `POST /api/cart/items` - Add item to cart (requires auth)
-- `PUT /api/cart/items/:id` - Update cart item quantity (requires auth)
-- `DELETE /api/cart/items/:id` - Remove item from cart (requires auth)
+- `PUT /api/cart/items/:id` - Update cart item (requires auth)
+- `DELETE /api/cart/items/:id` - Remove item (requires auth)
 - `DELETE /api/cart` - Clear cart (requires auth)
 
 ### Orders (`/api/orders`)
-
-- `GET /api/orders` - Get all orders (user sees own, admin sees all)
-- `GET /api/orders/:id` - Get order by ID
+- `GET /api/orders` - Get orders (requires auth)
+- `GET /api/orders/:id` - Get order by ID (requires auth)
 - `POST /api/orders` - Create order from cart (requires auth)
-- `PUT /api/orders/:id/status` - Update order status (Admin only)
 
 ### Payments (`/api/payments`)
-
-- `POST /api/payments/create-intent` - Create Stripe payment intent (requires auth)
+- `POST /api/payments/create-intent` - Create payment intent (requires auth)
 - `POST /api/payments/confirm` - Confirm payment (requires auth)
 - `GET /api/payments/status/:orderId` - Get payment status (requires auth)
 
-## Database Schema
+## Tech Stack
 
-- **User** - User accounts with roles (USER/ADMIN)
-- **Product** - Product catalog
-- **Cart** - User shopping carts
-- **CartItem** - Items in cart
-- **Order** - Customer orders
-- **OrderItem** - Items in orders
-- **Payment** - Payment records linked to orders
+### Backend
+- Node.js + TypeScript
+- Express.js
+- Prisma ORM
+- PostgreSQL
+- JWT Authentication
+- Stripe Payments
 
-## Authentication
+### Frontend
+- Streamlit (Python)
+- Requests (HTTP client)
 
-All protected routes require a JWT token in the Authorization header:
+## Development
 
+### Backend Development
+```bash
+cd backend
+npm run dev
 ```
-Authorization: Bearer <token>
+
+### Frontend Development
+```bash
+cd frontend
+streamlit run app.py
 ```
-
-## Notes
-
-- After `npm run build`, compiled JavaScript files are saved in the `dist/` folder
-- Each controller module has an `index.ts` file that exports the router
-- All routes are aggregated in `src/routes/index.ts`
-- Services contain business logic, controllers handle HTTP requests/responses
-- Middlewares handle authentication, authorization, and error handling
 
 ## License
 

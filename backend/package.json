@@ -1,8 +1,8 @@
 {
-  "name": "upaisa",
+  "name": "ecommerce-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "",
+  "description": "E-Commerce Backend API",
   "scripts": {
     "start": "nodemon ./src/bin/www",
     "dev": "npx tsc && nodemon ./src/bin/www",
