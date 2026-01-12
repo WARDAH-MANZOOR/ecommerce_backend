@@ -1,5 +1,6 @@
-import { Request, Response } from "express";
+// src/controllers/webhook/index.ts
 import Stripe from "stripe";
+import { Request, Response } from "express";
 import { paymentWebhookService } from "../../services/webhook/index.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -11,8 +12,13 @@ export const stripeWebhookController = async (req: Request, res: Response) => {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET!  // ← ye zaroori hai
+    );
   } catch (err: any) {
+    console.error("Webhook signature verification failed:", err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
