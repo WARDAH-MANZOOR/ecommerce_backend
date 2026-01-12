@@ -1,0 +1,16 @@
+import { prisma } from "../../config/prisma.js";
+
+export const paymentWebhookService = {
+  async handleCheckoutSessionCompleted(orderId: string) {
+    // Payment & order status update in DB
+    await prisma.payment.update({
+      where: { orderId },
+      data: { status: "PAYMENT_SUCCESS" },
+    });
+
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { paymentStatus: "PAYMENT_SUCCESS", status: "PAID" },
+    });
+  },
+};
