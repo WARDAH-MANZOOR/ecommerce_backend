@@ -30,8 +30,6 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "cart" not in st.session_state:
     st.session_state.cart = []
-if "rerun_flag" not in st.session_state:
-    st.session_state.rerun_flag = False
 
 # -------------------------
 # Helper functions
@@ -88,7 +86,7 @@ def logout():
     st.session_state.token = None
     st.session_state.user = None
     st.session_state.cart = []
-    st.session_state.rerun_flag = not st.session_state.rerun_flag
+    st.info("Logged out successfully! Refresh the page.")
 
 def get_products() -> List[Dict]:
     result = api_request("GET", "/products")
@@ -114,12 +112,11 @@ def get_orders() -> List[Dict]:
 # -------------------------
 st.sidebar.title("🔐 Authentication")
 
-if st.session_state.token:
+if st.session_state.token and st.session_state.user:
     st.sidebar.success(f"Logged in as: {st.session_state.user.get('name', 'User')}")
     st.sidebar.write(f"Role: {st.session_state.user.get('role', 'USER')}")
     if st.sidebar.button("Logout"):
         logout()
-        st.info("Logged out successfully! Refresh the page.")
 else:
     tab1, tab2 = st.sidebar.tabs(["Login", "Register"])
     
@@ -129,7 +126,7 @@ else:
         login_password = st.text_input("Password", type="password", key="login_password")
         if st.button("Login", key="login_btn"):
             if login(login_email, login_password):
-                st.success("Login successful! Refresh the page to see updates.")
+                st.success("Login successful! Refresh page to see updates.")
             else:
                 st.error("Login failed!")
     
@@ -140,7 +137,7 @@ else:
         reg_password = st.text_input("Password", type="password", key="reg_password")
         if st.button("Register", key="reg_btn"):
             if register(reg_name, reg_email, reg_password):
-                st.success("Registration successful! Refresh the page to see updates.")
+                st.success("Registration successful! Refresh page to see updates.")
             else:
                 st.error("Registration failed!")
 
@@ -150,7 +147,6 @@ else:
 st.title("🛒 E-Commerce Store")
 st.markdown("---")
 
-# Navigation
 page = st.selectbox(
     "Navigate",
     ["Products", "Cart", "Orders"],
@@ -163,11 +159,9 @@ page = st.selectbox(
 if page == "Products":
     st.header("📦 Products")
     
-    # Admin panel
+    # Admin panel for managing products
     if st.session_state.user and st.session_state.user.get("role") == "ADMIN":
         st.subheader("🛠 Admin Panel - Manage Products")
-
-        # Add product
         st.markdown("### ➕ Add Product")
         product_name = st.text_input("Product Name", key="admin_name")
         product_price = st.number_input("Price", min_value=0.0, key="admin_price")
@@ -175,12 +169,7 @@ if page == "Products":
         product_desc = st.text_area("Description", key="admin_desc")
 
         if st.button("Add Product", key="add_product_btn"):
-            data = {
-                "name": product_name,
-                "price": product_price,
-                "stock": product_stock,
-                "description": product_desc
-            }
+            data = {"name": product_name, "price": product_price, "stock": product_stock, "description": product_desc}
             res = api_request("POST", "/products", data)
             if res:
                 st.success(f"Product '{product_name}' added successfully! Refresh page to see it.")
@@ -194,7 +183,6 @@ if page == "Products":
                 price = st.number_input("Price", min_value=0.0, value=float(prod["price"]), key=f"edit_price_{prod['id']}")
                 stock = st.number_input("Stock", min_value=0, value=prod["stock"], key=f"edit_stock_{prod['id']}")
                 desc = st.text_area("Description", value=prod.get("description", ""), key=f"edit_desc_{prod['id']}")
-
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.button("Update", key=f"update_{prod['id']}"):
@@ -206,7 +194,7 @@ if page == "Products":
                         api_request("DELETE", f"/products/{prod['id']}")
                         st.success("Product deleted successfully! Refresh page to see changes.")
 
-    # Display products for all users
+    # Display products to all users
     products = get_products()
     if not products:
         st.info("No products available.")
@@ -220,7 +208,8 @@ if page == "Products":
                 if product.get('description'):
                     st.write(product['description'])
 
-                if st.session_state.token:
+                # Only non-admin users can add to cart
+                if st.session_state.token and st.session_state.user and st.session_state.user.get("role") != "ADMIN":
                     col1, col2 = st.columns(2)
                     quantity = col1.number_input(
                         "Quantity",
@@ -232,6 +221,8 @@ if page == "Products":
                     if col2.button("Add to Cart", key=f"add_{product['id']}"):
                         if add_to_cart(product['id'], quantity):
                             st.success("Added to cart! Refresh page to see your cart.")
+                elif st.session_state.user and st.session_state.user.get("role") == "ADMIN":
+                    st.info("Admins cannot add products to cart.")
                 else:
                     st.info("Login to add to cart")
                 st.markdown("---")
@@ -239,10 +230,52 @@ if page == "Products":
 # -------------------------
 # Cart Page
 # -------------------------
+# elif page == "Cart":
+#     st.header("🛒 Shopping Cart")
+#     if not st.session_state.token or st.session_state.user is None:
+#         st.warning("Please login to view your cart.")
+#     elif st.session_state.user.get("role") == "ADMIN":
+#         st.info("Admins cannot use cart or checkout.")
+#     else:
+#         cart = get_cart()
+#         if cart and cart.get("items"):
+#             total = 0
+#             for item in cart["items"]:
+#                 product = item.get("product", {})
+#                 quantity = item.get("quantity", 0)
+#                 price = float(product.get("price", 0))
+#                 item_total = price * quantity
+#                 total += item_total
+
+#                 col1, col2, col3, col4 = st.columns([3,1,1,1])
+#                 col1.write(f"**{product.get('name', 'Unknown')}**")
+#                 col2.write(f"Qty: {quantity}")
+#                 col3.write(f"${price:.2f}")
+#                 col4.write(f"${item_total:.2f}")
+#                 st.markdown("---")
+
+#             st.markdown(f"### Total: ${total:.2f}")
+
+#             col1, col2 = st.columns(2)
+#             if col1.button("Clear Cart"):
+#                 api_request("DELETE", "/cart")
+#                 st.info("Cart cleared! Refresh page.")
+#             if col2.button("Checkout"):
+#                 order = create_order()
+#                 if order:
+#                     st.success("Order created successfully! Refresh page to see order history.")
+#         else:
+#             st.info("Your cart is empty.")
+# -------------------------
+# Cart Page with Payment
+# -------------------------
 elif page == "Cart":
     st.header("🛒 Shopping Cart")
-    if not st.session_state.token:
+    
+    if not st.session_state.token or st.session_state.user is None:
         st.warning("Please login to view your cart.")
+    elif st.session_state.user.get("role") == "ADMIN":
+        st.info("Admins cannot use cart or checkout.")
     else:
         cart = get_cart()
         if cart and cart.get("items"):
@@ -254,7 +287,7 @@ elif page == "Cart":
                 item_total = price * quantity
                 total += item_total
 
-                col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+                col1, col2, col3, col4 = st.columns([3,1,1,1])
                 col1.write(f"**{product.get('name', 'Unknown')}**")
                 col2.write(f"Qty: {quantity}")
                 col3.write(f"${price:.2f}")
@@ -264,13 +297,30 @@ elif page == "Cart":
             st.markdown(f"### Total: ${total:.2f}")
 
             col1, col2 = st.columns(2)
-            if col1.button("Clear Cart"):
-                api_request("DELETE", "/cart")
-                st.info("Cart cleared! Refresh page.")
-            if col2.button("Checkout"):
-                order = create_order()
-                if order:
-                    st.success("Order created successfully! Refresh page to see order history.")
+            with col1:
+                if st.button("Clear Cart"):
+                    api_request("DELETE", "/cart")
+                    st.info("Cart cleared! Refresh page.")
+
+            with col2:
+                if st.button("Checkout"):
+                    # 1️⃣ Create order
+                    response = create_order()
+                    if response and "order" in response:
+                        order = response["order"]
+                        order_id = order.get("id")
+                        st.info(f"Order created with ID: {order_id}")
+
+                        # 2️⃣ Create payment intent via backend
+                        payment_data = {"orderId": order_id}
+                        payment_intent = api_request("POST", "/payments/create-intent", payment_data)
+
+                        if payment_intent and payment_intent.get("checkoutUrl"):
+                            checkout_url = payment_intent["checkoutUrl"]
+                            st.success("Payment ready! Click below to pay in Stripe Sandbox.")
+                            st.markdown(f"[💳 Pay Now]({checkout_url})", unsafe_allow_html=True)
+                        else:
+                            st.error("Failed to generate Stripe Checkout link. Check backend.")
         else:
             st.info("Your cart is empty.")
 
@@ -279,7 +329,7 @@ elif page == "Cart":
 # -------------------------
 elif page == "Orders":
     st.header("📋 Orders")
-    if not st.session_state.token:
+    if not st.session_state.token or st.session_state.user is None:
         st.warning("Please login to view your orders.")
     else:
         orders = get_orders()
