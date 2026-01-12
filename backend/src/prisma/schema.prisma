@@ -5,13 +5,18 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client-js"
+  previewFeatures = ["typedSql"]
+  
 }
+
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
+
+
 
 model User {
   id        String   @id @default(uuid())
@@ -30,7 +35,7 @@ model Product {
   id          String        @id @default(uuid())
   name        String
   description String?
-  price       Decimal       @db.Numeric(10, 2)
+  price       Decimal    
   stock       Int
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -42,7 +47,7 @@ model Product {
 model Order {
   id            String         @id @default(uuid())
   userId        String
-  totalAmount   Decimal        @db.Numeric(10, 2)
+  totalAmount   Decimal        
   status        OrderStatus    @default(PENDING)
   paymentStatus PaymentStatus  @default(PAYMENT_PENDING)
   createdAt     DateTime       @default(now())
@@ -58,7 +63,7 @@ model OrderItem {
   orderId   String
   productId String
   quantity  Int
-  price     Decimal  @db.Numeric(10, 2)
+  price     Decimal  
 
   order   Order   @relation(fields: [orderId], references: [id])
   product Product @relation(fields: [productId], references: [id])
@@ -87,7 +92,7 @@ model CartItem {
 model Payment {
   id                  String         @id @default(uuid())
   orderId             String   @unique
-  amount              Decimal        @db.Numeric(10, 2)
+  amount              Decimal       
   stripePaymentIntent String
   status              PaymentStatus  @default(PAYMENT_PENDING)
   createdAt           DateTime       @default(now())

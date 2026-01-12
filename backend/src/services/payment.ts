@@ -1,10 +1,9 @@
 import Stripe from "stripe";
 import { prisma } from "../config/prisma.js";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-12-18.acacia",
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2024-06-20",
 });
-
 export const paymentService = {
   async createPaymentIntent(orderId: string) {
     const order = await prisma.order.findUnique({
