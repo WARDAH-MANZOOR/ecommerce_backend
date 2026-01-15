@@ -114,13 +114,69 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export const paymentService = {
+  // async createPaymentIntent(orderId: string) {
+  //   const order = await prisma.order.findUnique({
+  //     where: { id: orderId },
+  //     include: {
+  //       items: {
+  //         include: { product: true },
+  //       },
+  //     },
+  //   });
+
+  //   if (!order) throw new Error("Order not found");
+  //   if (order.paymentStatus === "PAYMENT_SUCCESS")
+  //     throw new Error("Order already paid");
+
+  //   const amount = Number(order.totalAmount) * 100; // in cents
+
+  //   // 🔹 Create Stripe Checkout Session
+  //   const session = await stripe.checkout.sessions.create({
+  //     payment_method_types: ["card"],
+  //     line_items: order.items.map((item:any) => ({
+  //       price_data: {
+  //         currency: "usd",
+  //         product_data: { name: item.product.name },
+  //         unit_amount: Math.round(item.product.price * 100),
+  //       },
+  //       quantity: item.quantity,
+  //     })),
+  //     mode: "payment",
+  //     success_url: "http://localhost:8501?success=true",
+  //     cancel_url: "http://localhost:8501?canceled=true",
+  //     metadata: { orderId: order.id },
+  //   });
+
+  //   // 🔹 Create or update payment record in DB
+  //   await prisma.payment.upsert({
+  //     where: { orderId },
+  //     create: {
+  //       orderId: order.id,
+  //       amount: order.totalAmount,
+  //       stripePaymentIntent: typeof session.payment_intent === "string" 
+  //           ? session.payment_intent 
+  //           : session.payment_intent?.id ?? "",
+  //       status: "PAYMENT_PENDING",
+  //     },
+  //     update: {
+  //       stripePaymentIntent: typeof session.payment_intent === "string" 
+  //           ? session.payment_intent 
+  //           : session.payment_intent?.id ?? "",
+  //       status: "PAYMENT_PENDING",
+  //     },
+  //   });
+    
+  //   // 🔹 Return Checkout URL to frontend
+  //   return {
+  //     checkoutUrl: session.url,
+  //     clientSecret: session.payment_intent ? session.payment_intent : null,
+  //   };
+  // },
   async createPaymentIntent(orderId: string) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        items: {
-          include: { product: true },
-        },
+        items: { include: { product: true } },
       },
     });
 
@@ -128,12 +184,10 @@ export const paymentService = {
     if (order.paymentStatus === "PAYMENT_SUCCESS")
       throw new Error("Order already paid");
 
-    const amount = Number(order.totalAmount) * 100; // in cents
-
-    // 🔹 Create Stripe Checkout Session
+    // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      line_items: order.items.map((item:any) => ({
+      line_items: order.items.map((item: any) => ({
         price_data: {
           currency: "usd",
           product_data: { name: item.product.name },
@@ -147,29 +201,23 @@ export const paymentService = {
       metadata: { orderId: order.id },
     });
 
-    // 🔹 Create or update payment record in DB
+    // Create Payment record with pending status
     await prisma.payment.upsert({
       where: { orderId },
       create: {
         orderId: order.id,
         amount: order.totalAmount,
-        stripePaymentIntent: typeof session.payment_intent === "string" 
-            ? session.payment_intent 
-            : session.payment_intent?.id ?? "",
         status: "PAYMENT_PENDING",
+        stripePaymentIntent: "", // leave empty, webhook will update
       },
       update: {
-        stripePaymentIntent: typeof session.payment_intent === "string" 
-            ? session.payment_intent 
-            : session.payment_intent?.id ?? "",
         status: "PAYMENT_PENDING",
       },
     });
-    
-    // 🔹 Return Checkout URL to frontend
+
     return {
       checkoutUrl: session.url,
-      clientSecret: session.payment_intent ? session.payment_intent : null,
+      clientSecret: null, // Using Checkout Session, clientSecret not needed here
     };
   },
 
@@ -210,11 +258,17 @@ export const paymentService = {
     return { success: false, orderId };
   },
 
+  // async getPaymentStatus(orderId: string) {
+  //   const payment = await prisma.payment.findUnique({
+  //     where: { orderId },
+  //     include: { order: true },
+  //   });
+  //   return payment;
+  // },
   async getPaymentStatus(orderId: string) {
-    const payment = await prisma.payment.findUnique({
+    return await prisma.payment.findUnique({
       where: { orderId },
       include: { order: true },
     });
-    return payment;
   },
 };
