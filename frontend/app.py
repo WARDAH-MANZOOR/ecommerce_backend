@@ -178,7 +178,7 @@ if page == "Products":
         st.markdown("### 📝 Manage Existing Products")
         products_admin = get_products()
         for prod in products_admin:
-            with st.expander(f"{prod['name']} - ${float(prod['price']):.2f}"):
+            with st.expander(f"{prod['name']} - {float(prod['price']):.2f}"):
                 name = st.text_input("Name", prod["name"], key=f"edit_name_{prod['id']}")
                 price = st.number_input("Price", min_value=0.0, value=float(prod["price"]), key=f"edit_price_{prod['id']}")
                 stock = st.number_input("Stock", min_value=0, value=prod["stock"], key=f"edit_stock_{prod['id']}")
@@ -203,7 +203,7 @@ if page == "Products":
         for idx, product in enumerate(products):
             with cols[idx % 3]:
                 st.markdown(f"### {product.get('name', 'Unknown')}")
-                st.write(f"**Price:** ${float(product.get('price', 0)):.2f}")
+                st.write(f"**Price:** {float(product.get('price', 0)):.2f}")
                 st.write(f"**Stock:** {product.get('stock', 0)}")
                 if product.get('description'):
                     st.write(product['description'])
@@ -290,11 +290,11 @@ elif page == "Cart":
                 col1, col2, col3, col4 = st.columns([3,1,1,1])
                 col1.write(f"**{product.get('name', 'Unknown')}**")
                 col2.write(f"Qty: {quantity}")
-                col3.write(f"${price:.2f}")
-                col4.write(f"${item_total:.2f}")
+                col3.write(f"{price:.2f}")
+                col4.write(f"{item_total:.2f}")
                 st.markdown("---")
 
-            st.markdown(f"### Total: ${total:.2f}")
+            st.markdown(f"### Total: {total:.2f}")
 
             col1, col2 = st.columns(2)
             with col1:
@@ -337,7 +337,7 @@ elif page == "Orders":
             st.info("No orders found.")
         else:
             for order in orders:
-                with st.expander(f"Order #{order.get('id', 'Unknown')[:8]} - ${float(order.get('totalAmount', 0)):.2f} - {order.get('status', 'Unknown')}"):
+                with st.expander(f"Order #{order.get('id', 'Unknown')[:8]} - {float(order.get('totalAmount', 0)):.2f} - {order.get('status', 'Unknown')}"):
                     st.write(f"**Status:** {order.get('status', 'Unknown')}")
                     st.write(f"**Payment Status:** {order.get('paymentStatus', 'Unknown')}")
                     st.write(f"**Date:** {order.get('createdAt', 'Unknown')}")
@@ -345,7 +345,7 @@ elif page == "Orders":
                         st.subheader("Items:")
                         for item in order["items"]:
                             product = item.get("product", {})
-                            st.write(f"- {product.get('name', 'Unknown')} x{item.get('quantity', 0)} @ ${float(product.get('price', 0)):.2f}")
+                            st.write(f"- {product.get('name', 'Unknown')} x{item.get('quantity', 0)} @ {float(product.get('price', 0)):.2f}")
 
 # -------------------------
 # Footer

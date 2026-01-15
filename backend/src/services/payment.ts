@@ -189,7 +189,7 @@ export const paymentService = {
       payment_method_types: ["card"],
       line_items: order.items.map((item: any) => ({
         price_data: {
-          currency: "usd",
+          currency: "pkr",
           product_data: { name: item.product.name },
           unit_amount: Math.round(item.product.price * 100),
         },
