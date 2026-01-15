@@ -2,13 +2,17 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import  webhookRouter  from "./routes/webhook/index.js";
 
 import routes from "./routes/index.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 dotenv.config();
+// ⚠️ Must be BEFORE express.json() and cors()
 
 const app = express();
+app.use("/api/webhooks", webhookRouter);
+
 
 // Global middlewares
 app.use(cors());
