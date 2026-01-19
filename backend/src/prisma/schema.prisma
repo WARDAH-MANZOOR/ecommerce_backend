@@ -56,6 +56,7 @@ model Order {
   user      User      @relation(fields: [userId], references: [id])
   items     OrderItem[]
   payment   Payment?
+  invoice Invoice?
 }
 
 model OrderItem {
@@ -96,6 +97,15 @@ model Payment {
   stripePaymentIntent String
   status              PaymentStatus  @default(PAYMENT_PENDING)
   createdAt           DateTime       @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+model Invoice {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  invoiceNumber String   @unique
+  pdfUrl        String
+  createdAt     DateTime @default(now())
 
   order Order @relation(fields: [orderId], references: [id])
 }
