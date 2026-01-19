@@ -36,12 +36,26 @@ orderRouter.get("/:id", requireAuth, async (req: AuthRequest, res, next) => {
 });
 
 // Create order from cart
+// orderRouter.post("/", requireAuth, async (req: AuthRequest, res, next) => {
+//   try {
+//     if (!req.user) {
+//       return res.status(401).json({ message: "Unauthorized" });
+//     }
+//     const order = await orderService.create(req.user.userId, { items: [] });
+//     res.status(201).json({ order });
+//   } catch (err: any) {
+//     if (err.message === "Cart is empty") {
+//       return res.status(400).json({ message: err.message });
+//     }
+//     next(err);
+//   }
+// });
 orderRouter.post("/", requireAuth, async (req: AuthRequest, res, next) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    const order = await orderService.create(req.user.userId, { items: [] });
+    const order = await orderService.create(req.user.userId);
     res.status(201).json({ order });
   } catch (err: any) {
     if (err.message === "Cart is empty") {
@@ -50,7 +64,6 @@ orderRouter.post("/", requireAuth, async (req: AuthRequest, res, next) => {
     next(err);
   }
 });
-
 // Update order status (Admin only)
 orderRouter.put("/:id/status", requireAuth, requireAdmin, async (req, res, next) => {
   try {

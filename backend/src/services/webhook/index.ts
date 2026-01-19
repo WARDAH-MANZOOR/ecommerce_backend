@@ -21,6 +21,12 @@ export const paymentWebhookService = {
     const orderId = session.metadata?.orderId;
     if (!orderId) return;
 
+    const order = await prisma.order.findUnique({
+          where: { id: orderId },
+          select: { userId: true },
+        });
+
+        if (!order) return;
     // Update payment intent and status
     await prisma.payment.update({
       where: { orderId },
@@ -40,5 +46,12 @@ export const paymentWebhookService = {
         status: "PAID",
       },
     });
-  },
+    // Clear cart(After successful payment, clear user's cart)
+     await prisma.cartItem.deleteMany({
+      where: {
+        cart: { userId: order.userId }
+      }
+    });
+
+    },
 };

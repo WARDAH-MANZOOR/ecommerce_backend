@@ -56,63 +56,95 @@ export const orderService = {
     });
   },
 
-  async create(userId: string, data: CreateOrderData) {
-    // Get cart items
+  // async create(userId: string, data: CreateOrderData) {
+  //   // Get cart items
+  //   const cart = await prisma.cart.findUnique({
+  //     where: { userId },
+  //     include: {
+  //       items: {
+  //         include: {
+  //           product: true,
+  //         },
+  //       },
+  //     },
+  //   });
+
+  //   if (!cart || cart.items.length === 0) {
+  //     throw new Error("Cart is empty");
+  //   }
+
+  //   // Calculate total
+  //   let totalAmount = 0;
+  //   const orderItems = cart.items.map((item: typeof cart.items[0]) => {
+  //     const price = Number(item.product.price);
+  //     const itemTotal = price * item.quantity;
+  //     totalAmount += itemTotal;
+
+  //     return {
+  //       productId: item.productId,
+  //       quantity: item.quantity,
+  //       price: price,
+  //     };
+  //   });
+
+  //   // Create order
+  //   const order = await prisma.order.create({
+  //     data: {
+  //       userId,
+  //       totalAmount: totalAmount,
+  //       items: {
+  //         create: orderItems,
+  //       },
+  //     },
+  //     include: {
+  //       items: {
+  //         include: {
+  //           product: true,
+  //         },
+  //       },
+  //     },
+  //   });
+
+  //   // Clear cart
+  //   await prisma.cartItem.deleteMany({
+  //     where: { cartId: cart.id },
+  //   });
+
+  //   return order;
+  // },
+  async create(userId: string) {
     const cart = await prisma.cart.findUnique({
       where: { userId },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
+      include: { items: { include: { product: true } } },
     });
 
     if (!cart || cart.items.length === 0) {
       throw new Error("Cart is empty");
     }
 
-    // Calculate total
     let totalAmount = 0;
-    const orderItems = cart.items.map((item: typeof cart.items[0]) => {
-      const price = Number(item.product.price);
-      const itemTotal = price * item.quantity;
-      totalAmount += itemTotal;
 
+    const items = cart.items.map(item => {
+      totalAmount += Number(item.product.price) * item.quantity;
       return {
         productId: item.productId,
         quantity: item.quantity,
-        price: price,
+        price: Number(item.product.price),
       };
     });
 
-    // Create order
-    const order = await prisma.order.create({
+    return prisma.order.create({
       data: {
         userId,
-        totalAmount: totalAmount,
-        items: {
-          create: orderItems,
-        },
+        status: "PENDING",
+        paymentStatus: "PAYMENT_PENDING",
+        totalAmount,
+        items: { create: items },
       },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
+      include: { items: true },
     });
-
-    // Clear cart
-    await prisma.cartItem.deleteMany({
-      where: { cartId: cart.id },
-    });
-
-    return order;
-  },
-
+  }
+  ,
   async updateStatus(id: string, status: string) {
     return prisma.order.update({
       where: { id },
