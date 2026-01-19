@@ -227,45 +227,7 @@ if page == "Products":
                     st.info("Login to add to cart")
                 st.markdown("---")
 
-# -------------------------
-# Cart Page
-# -------------------------
-# elif page == "Cart":
-#     st.header("🛒 Shopping Cart")
-#     if not st.session_state.token or st.session_state.user is None:
-#         st.warning("Please login to view your cart.")
-#     elif st.session_state.user.get("role") == "ADMIN":
-#         st.info("Admins cannot use cart or checkout.")
-#     else:
-#         cart = get_cart()
-#         if cart and cart.get("items"):
-#             total = 0
-#             for item in cart["items"]:
-#                 product = item.get("product", {})
-#                 quantity = item.get("quantity", 0)
-#                 price = float(product.get("price", 0))
-#                 item_total = price * quantity
-#                 total += item_total
 
-#                 col1, col2, col3, col4 = st.columns([3,1,1,1])
-#                 col1.write(f"**{product.get('name', 'Unknown')}**")
-#                 col2.write(f"Qty: {quantity}")
-#                 col3.write(f"${price:.2f}")
-#                 col4.write(f"${item_total:.2f}")
-#                 st.markdown("---")
-
-#             st.markdown(f"### Total: ${total:.2f}")
-
-#             col1, col2 = st.columns(2)
-#             if col1.button("Clear Cart"):
-#                 api_request("DELETE", "/cart")
-#                 st.info("Cart cleared! Refresh page.")
-#             if col2.button("Checkout"):
-#                 order = create_order()
-#                 if order:
-#                     st.success("Order created successfully! Refresh page to see order history.")
-#         else:
-#             st.info("Your cart is empty.")
 # -------------------------
 # Cart Page with Payment
 # -------------------------
@@ -302,25 +264,7 @@ elif page == "Cart":
                     api_request("DELETE", "/cart")
                     st.info("Cart cleared! Refresh page.")
 
-            # with col2:
-            #     if st.button("Checkout"):
-            #         # 1️⃣ Create order
-            #         response = create_order()
-            #         if response and "order" in response:
-            #             order = response["order"]
-            #             order_id = order.get("id")
-            #             st.info(f"Order created with ID: {order_id}")
-
-            #             # 2️⃣ Create payment intent via backend
-            #             payment_data = {"orderId": order_id}
-            #             payment_intent = api_request("POST", "/payments/create-intent", payment_data)
-
-            #             if payment_intent and payment_intent.get("checkoutUrl"):
-            #                 checkout_url = payment_intent["checkoutUrl"]
-            #                 st.success("Payment ready! Click below to pay in Stripe Sandbox.")
-            #                 st.markdown(f"[💳 Pay Now]({checkout_url})", unsafe_allow_html=True)
-            #             else:
-            #                 st.error("Failed to generate Stripe Checkout link. Check backend.")
+           
             with col2:
                 if st.button("Pay Now"):
                     # 1️⃣ Create DRAFT order (VERY IMPORTANT)
@@ -391,6 +335,34 @@ elif page == "Orders":
                                 )
                             else:
                                 st.error("Failed to create payment link.")
+                    # 📄 Invoice buttons for completed payment
+                    if order.get("paymentStatus") == "PAYMENT_SUCCESS":
+                        st.subheader("📄 Invoice")
+                        col1, col2 = st.columns(2)
+
+                        with col1:
+                            # View Invoice online
+                            if st.button("👁 View Invoice", key=f"view_{order['id']}"):
+                                invoice = api_request("GET", f"/invoices/{order['id']}")
+                                if invoice and invoice.get("pdfUrl"):
+                                    st.markdown(
+                                        f"[View Invoice PDF]({API_BASE_URL}{invoice['pdfUrl']})",
+                                        unsafe_allow_html=True
+                                    )
+                                else:
+                                    st.error("Invoice not found.")
+
+                        with col2:
+                            # Download Invoice
+                            if st.button("⬇️ Download Invoice", key=f"download_{order['id']}"):
+                                invoice = api_request("GET", f"/invoices/{order['id']}")
+                                if invoice and invoice.get("pdfUrl"):
+                                    st.markdown(
+                                        f"[Download Invoice]({API_BASE_URL}{invoice['pdfUrl']})",
+                                        unsafe_allow_html=True
+                                    )
+                                else:
+                                    st.error("Invoice not found.")
 
 # -------------------------
 # Footer
