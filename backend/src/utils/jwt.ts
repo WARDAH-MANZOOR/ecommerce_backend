@@ -11,7 +11,8 @@ const JWT_EXPIRES_IN = Number(process.env.JWT_EXPIRES_IN) || 60 * 60 * 24 * 7;
 
 
 export interface JwtPayload {
-  userId: string;
+  // userId: string;
+  id: string; // id = userId from token
   role: "USER" | "ADMIN";
 }
 
