@@ -1,18 +1,19 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import { verifyToken, JwtPayload } from "../utils/jwt.js";
 
 export interface AuthRequest extends Request {
-  user?: JwtPayload;
+  user: JwtPayload;
 }
 
-export const requireAuth = (
-  req: AuthRequest,
+export const requireAuth: RequestHandler = (
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Unauthorized" });
+    res.status(401).json({ message: "Unauthorized" });
+    return
   }
 
   const token = authHeader.split(" ")[1];
@@ -20,9 +21,11 @@ export const requireAuth = (
   try {
     const payload = verifyToken(token);
     req.user = payload;
-    return next();
+    next();
+    return
   } catch {
-    return res.status(401).json({ message: "Invalid token" });
+    res.status(401).json({ message: "Invalid token" });
+    return
   }
 };
 

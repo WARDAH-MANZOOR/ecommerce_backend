@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { prisma } from "../../config/prisma.js";
+import { generateInvoicePdf } from "../../utils/invoice.js";
 
 // export const paymentWebhookService = {
 //   async handleCheckoutSessionCompleted(orderId: string) {
@@ -46,6 +47,21 @@ export const paymentWebhookService = {
         status: "PAID",
       },
     });
+    const invoiceNumber = `INV-${Date.now()}`;
+
+    const pdfUrl = await generateInvoicePdf({
+      orderId,
+      invoiceNumber,
+    });
+
+    // Save invoice
+    await prisma.invoice.create({
+      data: {
+        orderId,
+        invoiceNumber,
+        pdfUrl,
+      },
+});
     // Clear cart(After successful payment, clear user's cart)
      await prisma.cartItem.deleteMany({
       where: {

@@ -4,6 +4,7 @@ import { productRouter } from "../controllers/product/index.js";
 import { orderRouter } from "../controllers/order/index.js";
 import { cartRouter } from "../controllers/cart/index.js";
 import { paymentRouter } from "../controllers/payment/index.js";
+import invoiceRouter from "./invoice/index.js";
 // import  webhookRouter  from "../controllers/webhook/index.js";
 const router = Router();
 
@@ -12,6 +13,7 @@ router.use("/products", productRouter);
 router.use("/orders", orderRouter);
 router.use("/cart", cartRouter);
 router.use("/payments", paymentRouter);
+router.use("/invoices", invoiceRouter);
 // router.use("/webhooks", webhookRouter);
 export default router;
 
