@@ -302,25 +302,52 @@ elif page == "Cart":
                     api_request("DELETE", "/cart")
                     st.info("Cart cleared! Refresh page.")
 
+            # with col2:
+            #     if st.button("Checkout"):
+            #         # 1️⃣ Create order
+            #         response = create_order()
+            #         if response and "order" in response:
+            #             order = response["order"]
+            #             order_id = order.get("id")
+            #             st.info(f"Order created with ID: {order_id}")
+
+            #             # 2️⃣ Create payment intent via backend
+            #             payment_data = {"orderId": order_id}
+            #             payment_intent = api_request("POST", "/payments/create-intent", payment_data)
+
+            #             if payment_intent and payment_intent.get("checkoutUrl"):
+            #                 checkout_url = payment_intent["checkoutUrl"]
+            #                 st.success("Payment ready! Click below to pay in Stripe Sandbox.")
+            #                 st.markdown(f"[💳 Pay Now]({checkout_url})", unsafe_allow_html=True)
+            #             else:
+            #                 st.error("Failed to generate Stripe Checkout link. Check backend.")
             with col2:
-                if st.button("Checkout"):
-                    # 1️⃣ Create order
-                    response = create_order()
-                    if response and "order" in response:
-                        order = response["order"]
-                        order_id = order.get("id")
-                        st.info(f"Order created with ID: {order_id}")
+                if st.button("Pay Now"):
+                    # 1️⃣ Create DRAFT order (VERY IMPORTANT)
+                    draft = create_order()
 
-                        # 2️⃣ Create payment intent via backend
-                        payment_data = {"orderId": order_id}
-                        payment_intent = api_request("POST", "/payments/create-intent", payment_data)
+                    if draft and "order" in draft:
+                        order_id = draft["order"]["id"]
+                        st.info(f"Draft order created: {order_id}")
 
-                        if payment_intent and payment_intent.get("checkoutUrl"):
-                            checkout_url = payment_intent["checkoutUrl"]
-                            st.success("Payment ready! Click below to pay in Stripe Sandbox.")
-                            st.markdown(f"[💳 Pay Now]({checkout_url})", unsafe_allow_html=True)
+                        # 2️⃣ Create payment intent
+                        payment = api_request(
+                            "POST",
+                            "/payments/create-intent",
+                            {"orderId": order_id}
+                        )
+
+                        if payment and payment.get("checkoutUrl"):
+                            st.success("Payment ready!")
+                            st.markdown(
+                                f"[💳 Pay Now]({payment['checkoutUrl']})",
+                                unsafe_allow_html=True
+                            )
                         else:
-                            st.error("Failed to generate Stripe Checkout link. Check backend.")
+                            st.error("Failed to create payment link.")
+                    else:
+                        st.error("Failed to create draft order.")
+
         else:
             st.info("Your cart is empty.")
 
@@ -346,6 +373,24 @@ elif page == "Orders":
                         for item in order["items"]:
                             product = item.get("product", {})
                             st.write(f"- {product.get('name', 'Unknown')} x{item.get('quantity', 0)} @ {float(product.get('price', 0)):.2f}")
+
+                     # 💳 PAY NOW BUTTON (VERY IMPORTANT)
+                    if order.get("paymentStatus") != "PAYMENT_SUCCESS":
+                        st.markdown("---")
+                        if st.button("💳 Pay Now", key=order["id"]):
+                            payment = api_request(
+                                "POST",
+                                "/payments/create-intent",
+                                {"orderId": order["id"]}
+                            )
+
+                            if payment and payment.get("checkoutUrl"):
+                                st.markdown(
+                                    f"[Pay Now]({payment['checkoutUrl']})",
+                                    unsafe_allow_html=True
+                                )
+                            else:
+                                st.error("Failed to create payment link.")
 
 # -------------------------
 # Footer
