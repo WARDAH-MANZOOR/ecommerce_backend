@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import dotenv from "dotenv";
+import path from "path";
 import  webhookRouter  from "./routes/webhook/index.js";
 
 import routes from "./routes/index.js";
@@ -12,6 +13,8 @@ dotenv.config();
 
 const app = express();
 app.use("/api/webhooks", webhookRouter);
+// index.ts / app.ts
+app.use("/invoices", express.static(path.join(process.cwd(), "public/invoices")));
 
 
 // Global middlewares
