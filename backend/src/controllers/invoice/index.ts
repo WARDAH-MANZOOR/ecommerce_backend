@@ -1,32 +1,22 @@
 import { Request, Response } from "express";
 import { invoiceService } from "../../services/invoice/index.js";
 
-declare global {
-  namespace Express {
-    interface Request {
-      user: { id: string };
-    }
-  }
-}
 
 export const invoiceController = {
   async getInvoiceByOrder(req: Request, res: Response) {
-    const invoice = await invoiceService.getByOrderId(
-      req.params.orderId,
-      req.user.id
-    );
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
 
-    if (!invoice)
-      return res.status(404).json({ message: "Invoice not found" });
+    const invoice = await invoiceService.getByOrderId(req.params.orderId, req.user.id);
+
+    if (!invoice) return res.status(404).json({ message: "Invoice not found" });
 
     res.json(invoice);
   },
 
   async downloadInvoice(req: Request, res: Response) {
-    const filePath = await invoiceService.getInvoiceFile(
-      req.params.orderId,
-      req.user.id
-    );
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
+    const filePath = await invoiceService.getInvoiceFile(req.params.orderId, req.user.id);
 
     res.download(filePath);
   },

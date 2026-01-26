@@ -1,6 +1,6 @@
-import { Router } from "express";
+import { Router } from "express"; 
 import { paymentService } from "../../services/payment.js";
-import { requireAuth, AuthRequest } from "../../middlewares/auth.js";
+import { requireAuth } from "../../middlewares/auth.js";
 
 export const paymentRouter = Router();
 
@@ -8,15 +8,12 @@ export const paymentRouter = Router();
 paymentRouter.use(requireAuth);
 
 // Create payment intent
-paymentRouter.post("/create-intent", async (req: AuthRequest, res, next) => {
+paymentRouter.post("/create-intent", async (req, res, next) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
     const { orderId } = req.body;
-    if (!orderId) {
-      return res.status(400).json({ message: "Order ID is required" });
-    }
+    if (!orderId) return res.status(400).json({ message: "Order ID is required" });
 
     const result = await paymentService.createPaymentIntent(orderId);
     res.json(result);
@@ -29,15 +26,12 @@ paymentRouter.post("/create-intent", async (req: AuthRequest, res, next) => {
 });
 
 // Confirm payment (webhook or manual)
-paymentRouter.post("/confirm", async (req: AuthRequest, res, next) => {
+paymentRouter.post("/confirm", async (req, res, next) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
     const { paymentIntentId } = req.body;
-    if (!paymentIntentId) {
-      return res.status(400).json({ message: "Payment intent ID is required" });
-    }
+    if (!paymentIntentId) return res.status(400).json({ message: "Payment intent ID is required" });
 
     const result = await paymentService.confirmPayment(paymentIntentId);
     res.json(result);
@@ -47,15 +41,13 @@ paymentRouter.post("/confirm", async (req: AuthRequest, res, next) => {
 });
 
 // Get payment status
-paymentRouter.get("/status/:orderId", async (req: AuthRequest, res, next) => {
+paymentRouter.get("/status/:orderId", async (req, res, next) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    if (!req.user) return res.status(401).json({ message: "Unauthorized" });
+
     const payment = await paymentService.getPaymentStatus(req.params.orderId);
-    if (!payment) {
-      return res.status(404).json({ message: "Payment not found" });
-    }
+    if (!payment) return res.status(404).json({ message: "Payment not found" });
+
     res.json({ payment });
   } catch (err) {
     next(err);

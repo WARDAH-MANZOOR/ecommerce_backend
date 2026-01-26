@@ -25,7 +25,7 @@ authRouter.post("/register", async (req, res, next) => {
       },
     });
 
-    const token = signToken({ userId: user.id, role: user.role });
+    const token = signToken({ id: user.id, role: user.role });
 
     res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
@@ -47,7 +47,7 @@ authRouter.post("/login", async (req, res, next) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = signToken({ userId: user.id, role: user.role });
+    const token = signToken({ id: user.id, role: user.role });
 
     res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
@@ -55,14 +55,17 @@ authRouter.post("/login", async (req, res, next) => {
   }
 });
 
-authRouter.get("/me", requireAuth, async (req: AuthRequest, res, next) => {
+authRouter.get("/me", requireAuth, async (req, res, next) => {
+  const authReq = req as AuthRequest; // type assertion here
+
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
+    if (!authReq.user) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
+      where: { id: authReq.user.id },
       select: { id: true, name: true, email: true, role: true, createdAt: true },
     });
 
