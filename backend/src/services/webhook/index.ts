@@ -73,13 +73,18 @@ export const paymentWebhookService = {
   const totalAmount = Number(order.totalAmount);
 
   // Generate full invoice PDF
+
   const pdfUrl = await generateInvoicePdf({
-    orderId,
-    invoiceNumber,
-    customer,
-    items,
-    totalAmount,
-  });
+      orderId,
+      invoiceNumber,
+      customer,
+      items,
+      totalAmount,
+      orderDate: order.createdAt,
+      paymentDate: new Date(),
+      deliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // example: +7 days
+    });
+
 
   // Save invoice in DB
   await prisma.invoice.create({
