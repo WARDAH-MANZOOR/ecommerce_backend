@@ -19,55 +19,87 @@ import { generateInvoicePdf } from "../../utils/invoice.js";
 // src/services/webhook/index.ts
 export const paymentWebhookService = {
   async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-    const orderId = session.metadata?.orderId;
-    if (!orderId) return;
+  const orderId = session.metadata?.orderId;
+  if (!orderId) return;
 
-    const order = await prisma.order.findUnique({
-          where: { id: orderId },
-          select: { userId: true },
-        });
+  // Fetch the order along with user info and order items
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      user: true, // for customer info
+      items: { include: { product: true } }, // for order items
+    },
+  });
 
-        if (!order) return;
-    // Update payment intent and status
-    await prisma.payment.update({
-      where: { orderId },
-      data: {
-        status: "PAYMENT_SUCCESS",
-        stripePaymentIntent: typeof session.payment_intent === "string" 
-            ? session.payment_intent 
-            : session.payment_intent?.id ?? "",
-      },
-    });
+  if (!order) return;
 
-    // Update order status
-    await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        paymentStatus: "PAYMENT_SUCCESS",
-        status: "PAID",
-      },
-    });
-    const invoiceNumber = `INV-${Date.now()}`;
+  // Update payment intent and status
+  await prisma.payment.update({
+    where: { orderId },
+    data: {
+      status: "PAYMENT_SUCCESS",
+      stripePaymentIntent:
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : session.payment_intent?.id ?? "",
+    },
+  });
 
-    const pdfUrl = await generateInvoicePdf({
+  // Update order status
+  await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      paymentStatus: "PAYMENT_SUCCESS",
+      status: "PAID",
+    },
+  });
+
+  // Generate invoice number
+  const invoiceNumber = `INV-${Date.now()}`;
+
+  // Prepare data for invoice PDF
+  const customer = {
+    name: order.user.name,
+    email: order.user.email,
+    address: order.user.address || "Not Provided", // You can extend User model to store address
+  };
+
+  const items = order.items.map(item => ({
+    name: item.product.name,
+    quantity: item.quantity,
+    price: Number(item.price),
+  }));
+
+  const totalAmount = Number(order.totalAmount);
+
+  // Generate full invoice PDF
+
+  const pdfUrl = await generateInvoicePdf({
       orderId,
       invoiceNumber,
+      customer,
+      items,
+      totalAmount,
+      orderDate: order.createdAt,
+      paymentDate: new Date(),
+      deliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // example: +7 days
     });
 
-    // Save invoice
-    await prisma.invoice.create({
-      data: {
-        orderId,
-        invoiceNumber,
-        pdfUrl,
-      },
-});
-    // Clear cart(After successful payment, clear user's cart)
-     await prisma.cartItem.deleteMany({
-      where: {
-        cart: { userId: order.userId }
-      }
-    });
 
+  // Save invoice in DB
+  await prisma.invoice.create({
+    data: {
+      orderId,
+      invoiceNumber,
+      pdfUrl,
     },
+  });
+
+  // Clear user's cart after successful payment
+  await prisma.cartItem.deleteMany({
+    where: {
+      cart: { userId: order.userId },
+    },
+  });
+},
 };

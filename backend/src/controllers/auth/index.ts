@@ -6,9 +6,45 @@ import { requireAuth, requireAdmin, AuthRequest } from "../../middlewares/auth.j
 
 export const authRouter = Router();
 
+// authRouter.post("/register", async (req, res, next) => {
+//   try {
+
+//     const { name, email, password, role, address } = req.body;
+
+//     if (!address) {
+//       return res.status(400).json({ message: "Address is required" });
+//     }
+
+//     const existing = await prisma.user.findUnique({ where: { email } });
+//     if (existing) {
+//       return res.status(400).json({ message: "Email already in use" });
+//     }
+
+//     const hashed = await hashPassword(password);
+//     const user = await prisma.user.create({
+//       data: {
+//         name,
+//         email,
+//         password: hashed,
+//         address, // ❌ This must exist and be a string
+//         role: role === "ADMIN" ? "ADMIN" : "USER",
+//       },
+//     });
+
+//     const token = signToken({ id: user.id, role: user.role });
+
+//     res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+//   } catch (err) {
+//     next(err);
+//   }
+// });
 authRouter.post("/register", async (req, res, next) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, address } = req.body;
+
+    if (!address) {
+      return res.status(400).json({ message: "Address is required" });
+    }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -21,13 +57,17 @@ authRouter.post("/register", async (req, res, next) => {
         name,
         email,
         password: hashed,
+        address, // now always defined
         role: role === "ADMIN" ? "ADMIN" : "USER",
       },
     });
 
     const token = signToken({ id: user.id, role: user.role });
 
-    res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    res.status(201).json({ 
+      token, 
+      user: { id: user.id, name: user.name, email: user.email, role: user.role } 
+    });
   } catch (err) {
     next(err);
   }
