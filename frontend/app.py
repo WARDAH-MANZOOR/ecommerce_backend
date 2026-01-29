@@ -15,6 +15,8 @@ st.set_page_config(
 # -------------------------
 # Backend API URL
 # -------------------------
+PDF_BASE_URL = "http://localhost:3000/api"  # no /api
+
 API_BASE_URL = st.sidebar.text_input(
     "Backend API URL",
     value="http://localhost:3000/api",
@@ -346,7 +348,7 @@ elif page == "Orders":
                                 invoice = api_request("GET", f"/invoices/{order['id']}")
                                 if invoice and invoice.get("pdfUrl"):
                                     st.markdown(
-                                        f"[View Invoice PDF]({API_BASE_URL}{invoice['pdfUrl']})",
+                                        f"[View Invoice PDF]({PDF_BASE_URL}{invoice['pdfUrl']})",
                                         unsafe_allow_html=True
                                     )
                                 else:
@@ -358,7 +360,7 @@ elif page == "Orders":
                                 invoice = api_request("GET", f"/invoices/{order['id']}")
                                 if invoice and invoice.get("pdfUrl"):
                                     st.markdown(
-                                        f"[Download Invoice]({API_BASE_URL}{invoice['pdfUrl']})",
+                                        f"[Download Invoice]({PDF_BASE_URL}{invoice['pdfUrl']})",
                                         unsafe_allow_html=True
                                     )
                                 else:
