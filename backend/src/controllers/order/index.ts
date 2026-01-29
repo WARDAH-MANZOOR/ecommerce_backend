@@ -5,12 +5,15 @@ import { requireAuth, requireAdmin, AuthRequest } from "../../middlewares/auth.j
 export const orderRouter = Router();
 
 // Get all orders (user sees own, admin sees all)
-orderRouter.get("/", requireAuth, async (req: AuthRequest, res, next) => {
+orderRouter.get("/", requireAuth, async (req, res, next) => {
+  const authReq = req as AuthRequest; // cast to access user safely
+
   try {
-    if (!req.user) {
+    if (!authReq.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    const userId = req.user.role === "ADMIN" ? undefined : req.user.userId;
+
+    const userId = authReq.user.role === "ADMIN" ? undefined : authReq.user.id;
     const orders = await orderService.getAll(userId);
     res.json({ orders });
   } catch (err) {
@@ -18,22 +21,29 @@ orderRouter.get("/", requireAuth, async (req: AuthRequest, res, next) => {
   }
 });
 
+
 // Get order by ID
-orderRouter.get("/:id", requireAuth, async (req: AuthRequest, res, next) => {
+orderRouter.get("/:id", requireAuth, async (req, res, next) => {
+  const authReq = req as AuthRequest; // cast to access user safely
+
   try {
-    if (!req.user) {
+    if (!authReq.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    const userId = req.user.role === "ADMIN" ? undefined : req.user.userId;
+
+    const userId = authReq.user.role === "ADMIN" ? undefined : authReq.user.id;
     const order = await orderService.getById(req.params.id, userId);
+
     if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
+
     res.json({ order });
   } catch (err) {
     next(err);
   }
 });
+
 
 // Create order from cart
 // orderRouter.post("/", requireAuth, async (req: AuthRequest, res, next) => {
@@ -50,12 +60,15 @@ orderRouter.get("/:id", requireAuth, async (req: AuthRequest, res, next) => {
 //     next(err);
 //   }
 // });
-orderRouter.post("/", requireAuth, async (req: AuthRequest, res, next) => {
+orderRouter.post("/", requireAuth, async (req, res, next) => {
+  const authReq = req as AuthRequest; // cast here to access user
+
   try {
-    if (!req.user) {
+    if (!authReq.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    const order = await orderService.create(req.user.userId);
+
+    const order = await orderService.create(authReq.user.id); // use authReq.user.id
     res.status(201).json({ order });
   } catch (err: any) {
     if (err.message === "Cart is empty") {
@@ -64,6 +77,7 @@ orderRouter.post("/", requireAuth, async (req: AuthRequest, res, next) => {
     next(err);
   }
 });
+
 // Update order status (Admin only)
 orderRouter.put("/:id/status", requireAuth, requireAdmin, async (req, res, next) => {
   try {
