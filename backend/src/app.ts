@@ -14,7 +14,8 @@ dotenv.config();
 const app = express();
 app.use("/api/webhooks", webhookRouter);
 // index.ts / app.ts
-app.use("/invoices", express.static(path.join(process.cwd(), "public/invoices")));
+// app.use("/invoices", express.static(path.join(process.cwd(), "src/public/invoices")));
+app.use("api/public", express.static(path.join(process.cwd(), "public")));
 
 
 // Global middlewares
