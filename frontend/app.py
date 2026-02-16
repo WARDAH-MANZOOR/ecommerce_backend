@@ -354,17 +354,36 @@ elif page == "Orders":
                                 else:
                                     st.error("Invoice not found.")
 
+                        # with col2:
+                        #     # Download Invoice
+                        #     if st.button("⬇️ Download Invoice", key=f"download_{order['id']}"):
+                        #         invoice = api_request("GET", f"/invoices/{order['id']}")
+                        #         if invoice and invoice.get("pdfUrl"):
+                        #             st.markdown(
+                        #                 f"[Download Invoice]({PDF_BASE_URL}{invoice['pdfUrl']})",
+                        #                 unsafe_allow_html=True
+                        #             )
+                        #         else:
+                        #             st.error("Invoice not found.")
                         with col2:
                             # Download Invoice
                             if st.button("⬇️ Download Invoice", key=f"download_{order['id']}"):
                                 invoice = api_request("GET", f"/invoices/{order['id']}")
                                 if invoice and invoice.get("pdfUrl"):
-                                    st.markdown(
-                                        f"[Download Invoice]({PDF_BASE_URL}{invoice['pdfUrl']})",
-                                        unsafe_allow_html=True
-                                    )
+                                    # ✅ Get PDF content
+                                    pdf_response = requests.get(f"{PDF_BASE_URL}{invoice['pdfUrl']}")
+                                    if pdf_response.status_code == 200:
+                                        st.download_button(
+                                            label="⬇️ Download Invoice PDF",
+                                            data=pdf_response.content,
+                                            file_name=f"Invoice-{order['id'][:8]}.pdf",
+                                            mime="application/pdf"
+                                        )
+                                    else:
+                                        st.error("Failed to fetch invoice PDF.")
                                 else:
                                     st.error("Invoice not found.")
+
 
 # -------------------------
 # Footer
