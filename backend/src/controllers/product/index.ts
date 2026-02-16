@@ -34,7 +34,7 @@ productRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
     if (!name || price === undefined || stock === undefined) {
       return res.status(400).json({ message: "Missing required fields" });
     }
-    const product = await productService.create({ name, description, price, stock });
+    const product = await productService.create({ name, description, price, stock,imageUrl: req.body.imageUrl });
     res.status(201).json({ product });
   } catch (err) {
     next(err);

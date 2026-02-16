@@ -1,6 +1,8 @@
 import streamlit as st
 import requests
 from typing import Optional, Dict, List
+import os
+from pathlib import Path
 
 # -------------------------
 # Page configuration
@@ -90,9 +92,19 @@ def logout():
     st.session_state.cart = []
     st.info("Logged out successfully! Refresh the page.")
 
+# def get_products() -> List[Dict]:
+#     result = api_request("GET", "/products")
+#     return result.get("products", []) if result else []
 def get_products() -> List[Dict]:
     result = api_request("GET", "/products")
-    return result.get("products", []) if result else []
+    # if result is a dict with 'products', return that; else if result is list, return it directly
+    if result is None:
+        return []
+    if isinstance(result, dict) and "products" in result:
+        return result["products"]
+    if isinstance(result, list):
+        return result
+    return []
 
 def get_cart() -> Optional[Dict]:
     result = api_request("GET", "/cart")
@@ -155,49 +167,175 @@ page = st.selectbox(
     key="nav_select"
 )
 
+# # -------------------------
+# # Products Page
+# # -------------------------
+# if page == "Products":
+#     st.header("📦 Products")
+    
+#     # Admin panel for managing products
+#     if st.session_state.user and st.session_state.user.get("role") == "ADMIN":
+#         st.subheader("🛠 Admin Panel - Manage Products")
+#         st.markdown("### ➕ Add Product")
+#         product_name = st.text_input("Product Name", key="admin_name")
+#         product_price = st.number_input("Price", min_value=0.0, key="admin_price")
+#         product_stock = st.number_input("Stock", min_value=0, key="admin_stock")
+#         product_desc = st.text_area("Description", key="admin_desc")
+
+#         if st.button("Add Product", key="add_product_btn"):
+#             data = {"name": product_name, "price": product_price, "stock": product_stock, "description": product_desc}
+#             res = api_request("POST", "/products", data)
+#             if res:
+#                 st.success(f"Product '{product_name}' added successfully! Refresh page to see it.")
+
+#         st.markdown("---")
+#         st.markdown("### 📝 Manage Existing Products")
+#         products_admin = get_products()
+#         for prod in products_admin:
+#             with st.expander(f"{prod['name']} - {float(prod['price']):.2f}"):
+#                 name = st.text_input("Name", prod["name"], key=f"edit_name_{prod['id']}")
+#                 price = st.number_input("Price", min_value=0.0, value=float(prod["price"]), key=f"edit_price_{prod['id']}")
+#                 stock = st.number_input("Stock", min_value=0, value=prod["stock"], key=f"edit_stock_{prod['id']}")
+#                 desc = st.text_area("Description", value=prod.get("description", ""), key=f"edit_desc_{prod['id']}")
+#                 col1, col2 = st.columns(2)
+#                 with col1:
+#                     if st.button("Update", key=f"update_{prod['id']}"):
+#                         data = {"name": name, "price": price, "stock": stock, "description": desc}
+#                         api_request("PUT", f"/products/{prod['id']}", data)
+#                         st.success("Product updated successfully! Refresh page to see changes.")
+#                 with col2:
+#                     if st.button("Delete", key=f"delete_{prod['id']}"):
+#                         api_request("DELETE", f"/products/{prod['id']}")
+#                         st.success("Product deleted successfully! Refresh page to see changes.")
+
+#     # Display products to all users
+#     products = get_products()
+#     if not products:
+#         st.info("No products available.")
+#     else:
+#         cols = st.columns(3)
+#         for idx, product in enumerate(products):
+#             with cols[idx % 3]:
+#                 st.markdown(f"### {product.get('name', 'Unknown')}")
+#                 st.write(f"**Price:** {float(product.get('price', 0)):.2f}")
+#                 st.write(f"**Stock:** {product.get('stock', 0)}")
+#                 if product.get('description'):
+#                     st.write(product['description'])
+
+#                 # Only non-admin users can add to cart
+#                 if st.session_state.token and st.session_state.user and st.session_state.user.get("role") != "ADMIN":
+#                     col1, col2 = st.columns(2)
+#                     quantity = col1.number_input(
+#                         "Quantity",
+#                         min_value=1,
+#                         max_value=product.get('stock', 1),
+#                         value=1,
+#                         key=f"qty_{product['id']}"
+#                     )
+#                     if col2.button("Add to Cart", key=f"add_{product['id']}"):
+#                         if add_to_cart(product['id'], quantity):
+#                             st.success("Added to cart! Refresh page to see your cart.")
+#                 elif st.session_state.user and st.session_state.user.get("role") == "ADMIN":
+#                     st.info("Admins cannot add products to cart.")
+#                 else:
+#                     st.info("Login to add to cart")
+#                 st.markdown("---")
 # -------------------------
-# Products Page
+# Products Page (Professional Version)
 # -------------------------
 if page == "Products":
     st.header("📦 Products")
-    
-    # Admin panel for managing products
+    products = get_products()
+    # st.write("DEBUG: products:", products)
+
+    # -------------------------
+    # Admin Panel - Add / Manage Products
+    # -------------------------
     if st.session_state.user and st.session_state.user.get("role") == "ADMIN":
         st.subheader("🛠 Admin Panel - Manage Products")
         st.markdown("### ➕ Add Product")
+
         product_name = st.text_input("Product Name", key="admin_name")
         product_price = st.number_input("Price", min_value=0.0, key="admin_price")
         product_stock = st.number_input("Stock", min_value=0, key="admin_stock")
         product_desc = st.text_area("Description", key="admin_desc")
 
+        UPLOAD_DIR = Path("static/images")
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+        uploaded_file = st.file_uploader("Upload Product Image", type=["png", "jpg", "jpeg"])
+
+        product_image_url = ""
+
+        if uploaded_file:
+            file_path = UPLOAD_DIR / uploaded_file.name
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            product_image_url = f"static/images/{uploaded_file.name}"
+            st.image(product_image_url, width=150)
+
+        # Add Product Button
         if st.button("Add Product", key="add_product_btn"):
-            data = {"name": product_name, "price": product_price, "stock": product_stock, "description": product_desc}
+            data = {
+                "name": product_name,
+                "price": product_price,
+                "stock": product_stock,
+                "description": product_desc,
+                "imageUrl": product_image_url or ""
+            }
             res = api_request("POST", "/products", data)
             if res:
                 st.success(f"Product '{product_name}' added successfully! Refresh page to see it.")
 
         st.markdown("---")
         st.markdown("### 📝 Manage Existing Products")
+
+        # Fetch existing products
         products_admin = get_products()
         for prod in products_admin:
-            with st.expander(f"{prod['name']} - {float(prod['price']):.2f}"):
+            with st.expander(f"{prod['name']} - ${float(prod['price']):.2f}"):
                 name = st.text_input("Name", prod["name"], key=f"edit_name_{prod['id']}")
                 price = st.number_input("Price", min_value=0.0, value=float(prod["price"]), key=f"edit_price_{prod['id']}")
                 stock = st.number_input("Stock", min_value=0, value=prod["stock"], key=f"edit_stock_{prod['id']}")
                 desc = st.text_area("Description", value=prod.get("description", ""), key=f"edit_desc_{prod['id']}")
+
+                # File uploader for updating product image
+                uploaded_file_edit = st.file_uploader(
+                    "Upload New Image (Optional)",
+                    type=["png", "jpg", "jpeg"],
+                    key=f"edit_image_file_{prod['id']}"
+                )
+                image_url = prod.get("imageUrl", "")
+                if uploaded_file_edit:
+                    file_path = UPLOAD_DIR / uploaded_file_edit.name
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file_edit.getbuffer())
+                    image_url = f"static/images/{uploaded_file_edit.name}"
+                    st.image(file_path, caption="Updated Image", width=150)
+
+                # Update & Delete Buttons
                 col1, col2 = st.columns(2)
                 with col1:
                     if st.button("Update", key=f"update_{prod['id']}"):
-                        data = {"name": name, "price": price, "stock": stock, "description": desc}
+                        data = {
+                            "name": name,
+                            "price": price,
+                            "stock": stock,
+                            "description": desc,
+                            "imageUrl": image_url
+                        }
                         api_request("PUT", f"/products/{prod['id']}", data)
-                        st.success("Product updated successfully! Refresh page to see changes.")
+                        st.success("Product updated successfully! Refresh page.")
                 with col2:
                     if st.button("Delete", key=f"delete_{prod['id']}"):
                         api_request("DELETE", f"/products/{prod['id']}")
-                        st.success("Product deleted successfully! Refresh page to see changes.")
+                        st.success("Product deleted successfully! Refresh page.")
+# Display products to all users
+if not st.session_state.user or st.session_state.user.get("role") != "ADMIN":
+    st.subheader("Available Products")
 
-    # Display products to all users
-    products = get_products()
+
     if not products:
         st.info("No products available.")
     else:
@@ -205,30 +343,32 @@ if page == "Products":
         for idx, product in enumerate(products):
             with cols[idx % 3]:
                 st.markdown(f"### {product.get('name', 'Unknown')}")
+                if product.get("imageUrl"):
+                    st.image(product.get("imageUrl"), width=150)
+
                 st.write(f"**Price:** {float(product.get('price', 0)):.2f}")
                 st.write(f"**Stock:** {product.get('stock', 0)}")
                 if product.get('description'):
                     st.write(product['description'])
 
-                # Only non-admin users can add to cart
-                if st.session_state.token and st.session_state.user and st.session_state.user.get("role") != "ADMIN":
-                    col1, col2 = st.columns(2)
-                    quantity = col1.number_input(
-                        "Quantity",
-                        min_value=1,
-                        max_value=product.get('stock', 1),
-                        value=1,
-                        key=f"qty_{product['id']}"
-                    )
-                    if col2.button("Add to Cart", key=f"add_{product['id']}"):
-                        if add_to_cart(product['id'], quantity):
-                            st.success("Added to cart! Refresh page to see your cart.")
-                elif st.session_state.user and st.session_state.user.get("role") == "ADMIN":
-                    st.info("Admins cannot add products to cart.")
+                # Add to Cart for logged-in users
+                if st.session_state.token and st.session_state.user:
+                    if st.session_state.user.get("role") != "ADMIN":
+                        qty = st.number_input(
+                            "Quantity",
+                            min_value=1,
+                            max_value=product.get('stock', 1),
+                            value=1,
+                            key=f"user_qty_{product['id']}"
+                        )
+                        if st.button("Add to Cart", key=f"user_add_{product['id']}"):
+                            if add_to_cart(product['id'], qty):
+                                st.success("Added to cart! Refresh page to see your cart.")
+                    else:
+                        st.info("Admins cannot add products to cart.")
                 else:
                     st.info("Login to add to cart")
                 st.markdown("---")
-
 
 # -------------------------
 # Cart Page with Payment

@@ -5,6 +5,8 @@ export interface CreateProductData {
   description?: string;
   price: number;
   stock: number;
+  imageUrl: string; // Save uploaded image URL
+
 }
 
 export interface UpdateProductData {
@@ -12,6 +14,8 @@ export interface UpdateProductData {
   description?: string;
   price?: number;
   stock?: number;
+  imageUrl?: string; // Save uploaded image URL
+
 }
 
 export const productService = {
@@ -34,6 +38,8 @@ export const productService = {
         description: data.description,
         price: data.price,
         stock: data.stock,
+        imageUrl: data.imageUrl, // Save uploaded image URL
+
       },
     });
   },
