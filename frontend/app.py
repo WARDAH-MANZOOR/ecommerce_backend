@@ -536,8 +536,94 @@ elif page == "Cart":
 # -------------------------
 # Orders Page
 # -------------------------
+# elif page == "Orders":
+#     st.header("📋 Orders")
+#     if not st.session_state.token or st.session_state.user is None:
+#         st.warning("Please login to view your orders.")
+#     else:
+#         orders = get_orders()
+#         if not orders:
+#             st.info("No orders found.")
+#         else:
+#             for order in orders:
+#                 with st.expander(f"Order #{order.get('id', 'Unknown')[:8]} - {float(order.get('totalAmount', 0)):.2f} - {order.get('status', 'Unknown')}"):
+#                     st.write(f"**Status:** {order.get('status', 'Unknown')}")
+#                     st.write(f"**Payment Status:** {order.get('paymentStatus', 'Unknown')}")
+#                     st.write(f"**Date:** {order.get('createdAt', 'Unknown')}")
+#                     if order.get("items"):
+#                         st.subheader("Items:")
+#                         for item in order["items"]:
+#                             product = item.get("product", {})
+#                             st.write(f"- {product.get('name', 'Unknown')} x{item.get('quantity', 0)} @ {float(product.get('price', 0)):.2f}")
+
+#                      # 💳 PAY NOW BUTTON (VERY IMPORTANT)
+#                     if order.get("paymentStatus") != "PAYMENT_SUCCESS":
+#                         st.markdown("---")
+#                         if st.button("💳 Pay Now", key=order["id"]):
+#                             payment = api_request(
+#                                 "POST",
+#                                 "/payments/create-intent",
+#                                 {"orderId": order["id"]}
+#                             )
+
+#                             if payment and payment.get("checkoutUrl"):
+#                                 st.markdown(
+#                                     f"[Pay Now]({payment['checkoutUrl']})",
+#                                     unsafe_allow_html=True
+#                                 )
+#                             else:
+#                                 st.error("Failed to create payment link.")
+#                     # 📄 Invoice buttons for completed payment
+#                     if order.get("paymentStatus") == "PAYMENT_SUCCESS":
+#                         st.subheader("📄 Invoice")
+#                         col1, col2 = st.columns(2)
+
+#                         with col1:
+#                             # View Invoice online
+#                             if st.button("👁 View Invoice", key=f"view_{order['id']}"):
+#                                 invoice = api_request("GET", f"/invoices/{order['id']}")
+#                                 if invoice and invoice.get("pdfUrl"):
+#                                     st.markdown(
+#                                         f"[View Invoice PDF]({PDF_BASE_URL}{invoice['pdfUrl']})",
+#                                         unsafe_allow_html=True
+#                                     )
+#                                 else:
+#                                     st.error("Invoice not found.")
+
+#                         # with col2:
+#                         #     # Download Invoice
+#                         #     if st.button("⬇️ Download Invoice", key=f"download_{order['id']}"):
+#                         #         invoice = api_request("GET", f"/invoices/{order['id']}")
+#                         #         if invoice and invoice.get("pdfUrl"):
+#                         #             st.markdown(
+#                         #                 f"[Download Invoice]({PDF_BASE_URL}{invoice['pdfUrl']})",
+#                         #                 unsafe_allow_html=True
+#                         #             )
+#                         #         else:
+#                         #             st.error("Invoice not found.")
+#                         with col2:
+#                             # Download Invoice
+#                             if st.button("⬇️ Download Invoice", key=f"download_{order['id']}"):
+#                                 invoice = api_request("GET", f"/invoices/{order['id']}")
+#                                 if invoice and invoice.get("pdfUrl"):
+#                                     # ✅ Get PDF content
+#                                     pdf_response = requests.get(f"{PDF_BASE_URL}{invoice['pdfUrl']}")
+#                                     if pdf_response.status_code == 200:
+#                                         st.download_button(
+#                                             label="⬇️ Download Invoice PDF",
+#                                             data=pdf_response.content,
+#                                             file_name=f"Invoice-{order['id'][:8]}.pdf",
+#                                             mime="application/pdf"
+#                                         )
+#                                     else:
+#                                         st.error("Failed to fetch invoice PDF.")
+#                                 else:
+#                                     st.error("Invoice not found.")
+# -------------------------
+# Orders Page (Detailed & Visual)
+# -------------------------
 elif page == "Orders":
-    st.header("📋 Orders")
+    st.header("📋 Your Orders")
     if not st.session_state.token or st.session_state.user is None:
         st.warning("Please login to view your orders.")
     else:
@@ -546,80 +632,93 @@ elif page == "Orders":
             st.info("No orders found.")
         else:
             for order in orders:
-                with st.expander(f"Order #{order.get('id', 'Unknown')[:8]} - {float(order.get('totalAmount', 0)):.2f} - {order.get('status', 'Unknown')}"):
-                    st.write(f"**Status:** {order.get('status', 'Unknown')}")
-                    st.write(f"**Payment Status:** {order.get('paymentStatus', 'Unknown')}")
-                    st.write(f"**Date:** {order.get('createdAt', 'Unknown')}")
+                # Order status ke hisaab se color emoji
+                status = order.get('status', 'Unknown')
+                pay_status = order.get('paymentStatus', 'Unknown')
+                order_id_short = order.get('id', 'Unknown')[:8]
+                
+                # Expander Header
+                with st.expander(f"📦 Order #{order_id_short} | Total: {float(order.get('totalAmount', 0)):.2f} | {status}"):
+                    
+                    # --- Section 1: Order Meta Data ---
+                    col_info1, col_info2, col_info3 = st.columns(3)
+                    with col_info1:
+                        st.write(f"**📅 Order Date:**")
+                        st.caption(order.get('createdAt', 'N/A'))
+                    with col_info2:
+                        st.write(f"**🏷️ Order Status:**")
+                        st.info(status)
+                    with col_info3:
+                        st.write(f"**💳 Payment Status:**")
+                        if pay_status == "PAYMENT_SUCCESS":
+                            st.success("✅ Paid")
+                        else:
+                            st.error("❌ Unpaid")
+
+                    st.markdown("---")
+                    
+                    # --- Section 2: Product Items with Images ---
+                    st.subheader("Ordered Items")
+                    
+                    # Header for Items
+                    h_col0, h_col1, h_col2, h_col3 = st.columns([1, 3, 1, 1])
+                    h_col0.write("**Image**")
+                    h_col1.write("**Product**")
+                    h_col2.write("**Qty**")
+                    h_col3.write("**Price**")
+                    
                     if order.get("items"):
-                        st.subheader("Items:")
                         for item in order["items"]:
                             product = item.get("product", {})
-                            st.write(f"- {product.get('name', 'Unknown')} x{item.get('quantity', 0)} @ {float(product.get('price', 0)):.2f}")
-
-                     # 💳 PAY NOW BUTTON (VERY IMPORTANT)
-                    if order.get("paymentStatus") != "PAYMENT_SUCCESS":
-                        st.markdown("---")
-                        if st.button("💳 Pay Now", key=order["id"]):
-                            payment = api_request(
-                                "POST",
-                                "/payments/create-intent",
-                                {"orderId": order["id"]}
-                            )
-
-                            if payment and payment.get("checkoutUrl"):
-                                st.markdown(
-                                    f"[Pay Now]({payment['checkoutUrl']})",
-                                    unsafe_allow_html=True
-                                )
+                            item_col0, item_col1, item_col2, item_col3 = st.columns([1, 3, 1, 1])
+                            
+                            # Product Image
+                            img_path = product.get("imageUrl")
+                            if img_path and os.path.exists(img_path):
+                                item_col0.image(img_path, width=60)
                             else:
-                                st.error("Failed to create payment link.")
-                    # 📄 Invoice buttons for completed payment
-                    if order.get("paymentStatus") == "PAYMENT_SUCCESS":
-                        st.subheader("📄 Invoice")
-                        col1, col2 = st.columns(2)
+                                item_col0.write("📦")
+                            
+                            item_col1.write(f"**{product.get('name', 'Unknown')}**")
+                            item_col2.write(f"x {item.get('quantity', 0)}")
+                            item_col3.write(f"{float(product.get('price', 0)):.2f}")
+                    
+                    st.markdown("---")
 
-                        with col1:
-                            # View Invoice online
-                            if st.button("👁 View Invoice", key=f"view_{order['id']}"):
-                                invoice = api_request("GET", f"/invoices/{order['id']}")
-                                if invoice and invoice.get("pdfUrl"):
-                                    st.markdown(
-                                        f"[View Invoice PDF]({PDF_BASE_URL}{invoice['pdfUrl']})",
-                                        unsafe_allow_html=True
+                    # --- Section 3: Payment & Invoice Actions ---
+                    if pay_status != "PAYMENT_SUCCESS":
+                        st.warning("This order is pending payment.")
+                        if st.button("💳 Pay Now", key=f"pay_order_{order['id']}"):
+                            payment = api_request("POST", "/payments/create-intent", {"orderId": order["id"]})
+                            if payment and payment.get("checkoutUrl"):
+                                st.link_button("Complete Payment", payment['checkoutUrl'])
+                    
+                    else:
+                        # Payment Details
+                        st.write(f"**✅ Payment Completed at:** {order.get('updatedAt', 'N/A')}")
+                        
+                        st.subheader("📄 Invoice Management")
+                        inv_col1, inv_col2 = st.columns(2)
+                        
+                        invoice = api_request("GET", f"/invoices/{order['id']}")
+                        if invoice and invoice.get("pdfUrl"):
+                            full_pdf_url = f"{PDF_BASE_URL}{invoice['pdfUrl']}"
+                            
+                            with inv_col1:
+                                st.link_button("👁️ View Invoice Online", full_pdf_url)
+                            
+                            with inv_col2:
+                                pdf_response = requests.get(full_pdf_url)
+                                if pdf_response.status_code == 200:
+                                    st.download_button(
+                                        label="⬇️ Download PDF",
+                                        data=pdf_response.content,
+                                        file_name=f"Invoice-{order_id_short}.pdf",
+                                        mime="application/pdf",
+                                        key=f"dl_{order['id']}"
                                     )
-                                else:
-                                    st.error("Invoice not found.")
-
-                        # with col2:
-                        #     # Download Invoice
-                        #     if st.button("⬇️ Download Invoice", key=f"download_{order['id']}"):
-                        #         invoice = api_request("GET", f"/invoices/{order['id']}")
-                        #         if invoice and invoice.get("pdfUrl"):
-                        #             st.markdown(
-                        #                 f"[Download Invoice]({PDF_BASE_URL}{invoice['pdfUrl']})",
-                        #                 unsafe_allow_html=True
-                        #             )
-                        #         else:
-                        #             st.error("Invoice not found.")
-                        with col2:
-                            # Download Invoice
-                            if st.button("⬇️ Download Invoice", key=f"download_{order['id']}"):
-                                invoice = api_request("GET", f"/invoices/{order['id']}")
-                                if invoice and invoice.get("pdfUrl"):
-                                    # ✅ Get PDF content
-                                    pdf_response = requests.get(f"{PDF_BASE_URL}{invoice['pdfUrl']}")
-                                    if pdf_response.status_code == 200:
-                                        st.download_button(
-                                            label="⬇️ Download Invoice PDF",
-                                            data=pdf_response.content,
-                                            file_name=f"Invoice-{order['id'][:8]}.pdf",
-                                            mime="application/pdf"
-                                        )
-                                    else:
-                                        st.error("Failed to fetch invoice PDF.")
-                                else:
-                                    st.error("Invoice not found.")
-
+                        else:
+                            st.info("Invoice is being generated or not available.")
 
 # -------------------------
 # Footer
