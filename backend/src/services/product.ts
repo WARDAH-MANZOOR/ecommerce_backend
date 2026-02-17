@@ -5,6 +5,8 @@ export interface CreateProductData {
   description?: string;
   price: number;
   stock: number;
+  imageUrl: string; // Save uploaded image URL
+
 }
 
 export interface UpdateProductData {
@@ -12,6 +14,8 @@ export interface UpdateProductData {
   description?: string;
   price?: number;
   stock?: number;
+  imageUrl?: string; // Save uploaded image URL
+
 }
 
 export const productService = {
@@ -34,23 +38,26 @@ export const productService = {
         description: data.description,
         price: data.price,
         stock: data.stock,
+        imageUrl: data.imageUrl, // Save uploaded image URL
+
       },
     });
   },
 
-  async update(id: string, data: UpdateProductData) {
-    const updateData: any = {};
-    if (data.name) updateData.name = data.name;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.price !== undefined) updateData.price = data.price;
-    if (data.stock !== undefined) updateData.stock = data.stock;
+    async update(id: string, data: UpdateProductData) {
+      const updateData: any = {};
+      if (data.name) updateData.name = data.name;
+      if (data.description !== undefined) updateData.description = data.description;
+      if (data.price !== undefined) updateData.price = data.price;
+      if (data.stock !== undefined) updateData.stock = data.stock;
+      // Yeh line missing thi:
+      if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl; 
 
-    return prisma.product.update({
-      where: { id },
-      data: updateData,
-    });
+      return prisma.product.update({
+        where: { id },
+        data: updateData,
+      });
   },
-
   async delete(id: string) {
     return prisma.product.delete({
       where: { id },
