@@ -97,15 +97,8 @@ def logout():
 #     return result.get("products", []) if result else []
 def get_products() -> List[Dict]:
     result = api_request("GET", "/products")
-    # if result is a dict with 'products', return that; else if result is list, return it directly
-    if result is None:
-        return []
-    if isinstance(result, dict) and "products" in result:
-        return result["products"]
-    if isinstance(result, list):
-        return result
-    return []
-
+    if result is None: return []
+    return result.get("products", []) if isinstance(result, dict) else result
 def get_cart() -> Optional[Dict]:
     result = api_request("GET", "/cart")
     return result.get("cart") if result else None
@@ -241,6 +234,7 @@ page = st.selectbox(
 #                     st.info("Login to add to cart")
 #                 st.markdown("---")
 # -------------------------
+
 # Products Page (Professional Version)
 # -------------------------
 if page == "Products":
@@ -263,7 +257,7 @@ if page == "Products":
         UPLOAD_DIR = Path("static/images")
         UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-        uploaded_file = st.file_uploader("Upload Product Image", type=["png", "jpg", "jpeg"])
+        uploaded_file = st.file_uploader("Upload Product Image", type=["png", "jpg", "jpeg","jfif"])
 
         product_image_url = ""
 
@@ -293,8 +287,14 @@ if page == "Products":
 
         # Fetch existing products
         products_admin = get_products()
+        # for prod in products_admin:
+        #     with st.expander(f"{prod['name']} - ${float(prod['price']):.2f}"):
         for prod in products_admin:
             with st.expander(f"{prod['name']} - ${float(prod['price']):.2f}"):
+                # Maujooda image dikhane ke liye:
+                current_img = prod.get("imageUrl")
+                if current_img and os.path.exists(current_img):
+                    st.image(current_img, caption="Current Image", width=200)
                 name = st.text_input("Name", prod["name"], key=f"edit_name_{prod['id']}")
                 price = st.number_input("Price", min_value=0.0, value=float(prod["price"]), key=f"edit_price_{prod['id']}")
                 stock = st.number_input("Stock", min_value=0, value=prod["stock"], key=f"edit_stock_{prod['id']}")
@@ -303,7 +303,7 @@ if page == "Products":
                 # File uploader for updating product image
                 uploaded_file_edit = st.file_uploader(
                     "Upload New Image (Optional)",
-                    type=["png", "jpg", "jpeg"],
+                    type=["png", "jpg", "jpeg","jfif"],
                     key=f"edit_image_file_{prod['id']}"
                 )
                 image_url = prod.get("imageUrl", "")
@@ -312,7 +312,7 @@ if page == "Products":
                     with open(file_path, "wb") as f:
                         f.write(uploaded_file_edit.getbuffer())
                     image_url = f"static/images/{uploaded_file_edit.name}"
-                    st.image(file_path, caption="Updated Image", width=150)
+                    st.image(file_path, caption="Updated Image", width=200)
 
                 # Update & Delete Buttons
                 col1, col2 = st.columns(2)
@@ -332,46 +332,131 @@ if page == "Products":
                         api_request("DELETE", f"/products/{prod['id']}")
                         st.success("Product deleted successfully! Refresh page.")
 # Display products to all users
-if not st.session_state.user or st.session_state.user.get("role") != "ADMIN":
-    st.subheader("Available Products")
+# if not st.session_state.user or st.session_state.user.get("role") != "ADMIN":
+#     st.subheader("Available Products")
 
 
-    if not products:
-        st.info("No products available.")
-    else:
-        cols = st.columns(3)
-        for idx, product in enumerate(products):
-            with cols[idx % 3]:
-                st.markdown(f"### {product.get('name', 'Unknown')}")
-                if product.get("imageUrl"):
-                    st.image(product.get("imageUrl"), width=150)
+#     if not products:
+#         st.info("No products available.")
+#     else:
+# -------------------------
+# Main Product Display Logic
+# -------------------------
+if page == "Products":
+    # Agar user ADMIN nahi hai (ya login nahi hai), to products dikhao
+    if not st.session_state.user or st.session_state.user.get("role") != "ADMIN":
+        st.subheader("Available Products")
 
-                st.write(f"**Price:** {float(product.get('price', 0)):.2f}")
-                st.write(f"**Stock:** {product.get('stock', 0)}")
-                if product.get('description'):
-                    st.write(product['description'])
+        if not products:
+            st.info("No products available.")
+        else:
+            cols = st.columns(3)
+            for idx, product in enumerate(products):
+                with cols[idx % 3]:
+                    st.markdown(f"### {product.get('name', 'Unknown')}")
+                    
+                    # --- IMAGE LOGIC ---
+                    img_path = product.get("imageUrl")
+                    if img_path:
+                        if os.path.exists(img_path):
+                            st.image(img_path, width=200)
+                        else:
+                            alt_path = os.path.join("frontend", img_path)
+                            if os.path.exists(alt_path):
+                                st.image(alt_path, width=200)
+                            else:
+                                st.warning("Image not found")
 
-                # Add to Cart for logged-in users
-                if st.session_state.token and st.session_state.user:
-                    if st.session_state.user.get("role") != "ADMIN":
-                        qty = st.number_input(
-                            "Quantity",
-                            min_value=1,
-                            max_value=product.get('stock', 1),
-                            value=1,
-                            key=f"user_qty_{product['id']}"
-                        )
-                        if st.button("Add to Cart", key=f"user_add_{product['id']}"):
-                            if add_to_cart(product['id'], qty):
-                                st.success("Added to cart! Refresh page to see your cart.")
+                    st.write(f"**Price:** {float(product.get('price', 0)):.2f}")
+                    st.write(f"**Stock:** {product.get('stock', 0)}")
+                    if product.get('description'):
+                        st.write(product['description'])
+
+                    # Add to Cart Logic
+                    if st.session_state.token and st.session_state.user:
+                        if st.session_state.user.get("role") != "ADMIN":
+                            qty = st.number_input(
+                                "Quantity",
+                                min_value=1,
+                                max_value=product.get('stock', 1),
+                                value=1,
+                                key=f"user_qty_{product['id']}"
+                            )
+                            if st.button("Add to Cart", key=f"user_add_{product['id']}"):
+                                if add_to_cart(product['id'], qty):
+                                    st.success("Added to cart!")
                     else:
-                        st.info("Admins cannot add products to cart.")
-                else:
-                    st.info("Login to add to cart")
-                st.markdown("---")
+                        st.info("Login to add to cart")
+                    st.markdown("---")
 
 # -------------------------
 # Cart Page with Payment
+# -------------------------
+# elif page == "Cart":
+#     st.header("🛒 Shopping Cart")
+    
+#     if not st.session_state.token or st.session_state.user is None:
+#         st.warning("Please login to view your cart.")
+#     elif st.session_state.user.get("role") == "ADMIN":
+#         st.info("Admins cannot use cart or checkout.")
+#     else:
+#         cart = get_cart()
+#         if cart and cart.get("items"):
+#             total = 0
+#             for item in cart["items"]:
+#                 product = item.get("product", {})
+#                 quantity = item.get("quantity", 0)
+#                 price = float(product.get("price", 0))
+#                 item_total = price * quantity
+#                 total += item_total
+
+#                 col1, col2, col3, col4 = st.columns([3,1,1,1])
+#                 col1.write(f"**{product.get('name', 'Unknown')}**")
+#                 col2.write(f"Qty: {quantity}")
+#                 col3.write(f"{price:.2f}")
+#                 col4.write(f"{item_total:.2f}")
+#                 st.markdown("---")
+
+#             st.markdown(f"### Total: {total:.2f}")
+
+#             col1, col2 = st.columns(2)
+#             with col1:
+#                 if st.button("Clear Cart"):
+#                     api_request("DELETE", "/cart")
+#                     st.info("Cart cleared! Refresh page.")
+
+           
+#             with col2:
+#                 if st.button("Pay Now"):
+#                     # 1️⃣ Create DRAFT order (VERY IMPORTANT)
+#                     draft = create_order()
+
+#                     if draft and "order" in draft:
+#                         order_id = draft["order"]["id"]
+#                         st.info(f"Draft order created: {order_id}")
+
+#                         # 2️⃣ Create payment intent
+#                         payment = api_request(
+#                             "POST",
+#                             "/payments/create-intent",
+#                             {"orderId": order_id}
+#                         )
+
+#                         if payment and payment.get("checkoutUrl"):
+#                             st.success("Payment ready!")
+#                             st.markdown(
+#                                 f"[💳 Pay Now]({payment['checkoutUrl']})",
+#                                 unsafe_allow_html=True
+#                             )
+#                         else:
+#                             st.error("Failed to create payment link.")
+#                     else:
+#                         st.error("Failed to create draft order.")
+
+#         else:
+#             st.info("Your cart is empty.")
+# -------------------------
+# Cart Page with Images & Headings
 # -------------------------
 elif page == "Cart":
     st.header("🛒 Shopping Cart")
@@ -383,6 +468,16 @@ elif page == "Cart":
     else:
         cart = get_cart()
         if cart and cart.get("items"):
+            # --- Table Header ---
+            # Humne ek extra column banaya hai Image ke liye [1, 2, 1, 1, 1]
+            h_col0, h_col1, h_col2, h_col3, h_col4 = st.columns([1, 2, 1, 1, 1])
+            h_col0.write("**Image**")
+            h_col1.write("**Product Name**")
+            h_col2.write("**Quantity**")
+            h_col3.write("**Price**")
+            h_col4.write("**Subtotal**")
+            st.markdown("---")
+
             total = 0
             for item in cart["items"]:
                 product = item.get("product", {})
@@ -391,52 +486,53 @@ elif page == "Cart":
                 item_total = price * quantity
                 total += item_total
 
-                col1, col2, col3, col4 = st.columns([3,1,1,1])
-                col1.write(f"**{product.get('name', 'Unknown')}**")
-                col2.write(f"Qty: {quantity}")
+                # Har row ke liye columns
+                col0, col1, col2, col3, col4 = st.columns([1, 2, 1, 1, 1])
+                
+                # --- col0: Product Image Thumbnail ---
+                img_path = product.get("imageUrl")
+                if img_path:
+                    if os.path.exists(img_path):
+                        col0.image(img_path, width=70)
+                    else:
+                        alt_path = os.path.join("frontend", img_path)
+                        if os.path.exists(alt_path):
+                            col0.image(alt_path, width=70)
+                        else:
+                            col0.write("🖼️") # Default icon agar image na mile
+                else:
+                    col0.write("🖼️")
+
+                # --- col1 to col4: Details ---
+                col1.write(f"{product.get('name', 'Unknown')}")
+                col2.write(f"x {quantity}")
                 col3.write(f"{price:.2f}")
-                col4.write(f"{item_total:.2f}")
-                st.markdown("---")
+                col4.write(f"**{item_total:.2f}**")
+                
+                st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
 
-            st.markdown(f"### Total: {total:.2f}")
+            # Final Total
+            st.markdown(f"### Grand Total: {total:.2f}")
 
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("Clear Cart"):
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button("🗑️ Clear Cart"):
                     api_request("DELETE", "/cart")
-                    st.info("Cart cleared! Refresh page.")
+                    st.rerun() # Page refresh karne ke liye
 
-           
-            with col2:
-                if st.button("Pay Now"):
-                    # 1️⃣ Create DRAFT order (VERY IMPORTANT)
+            with col_btn2:
+                if st.button("💳 Pay Now"):
                     draft = create_order()
-
                     if draft and "order" in draft:
                         order_id = draft["order"]["id"]
-                        st.info(f"Draft order created: {order_id}")
-
-                        # 2️⃣ Create payment intent
-                        payment = api_request(
-                            "POST",
-                            "/payments/create-intent",
-                            {"orderId": order_id}
-                        )
-
+                        payment = api_request("POST", "/payments/create-intent", {"orderId": order_id})
                         if payment and payment.get("checkoutUrl"):
-                            st.success("Payment ready!")
-                            st.markdown(
-                                f"[💳 Pay Now]({payment['checkoutUrl']})",
-                                unsafe_allow_html=True
-                            )
+                            st.success("Payment link generated!")
+                            st.link_button("Go to Payment", payment['checkoutUrl'])
                         else:
                             st.error("Failed to create payment link.")
-                    else:
-                        st.error("Failed to create draft order.")
-
         else:
             st.info("Your cart is empty.")
-
 # -------------------------
 # Orders Page
 # -------------------------

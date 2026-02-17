@@ -30,8 +30,8 @@ productRouter.get("/:id", async (req, res, next) => {
 // Create product (Admin only)
 productRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
   try {
-    const { name, description, price, stock } = req.body;
-    if (!name || price === undefined || stock === undefined) {
+    const { name, description, price, stock, imageUrl } = req.body;
+    if (!name || price === undefined || stock === undefined || !imageUrl) {
       return res.status(400).json({ message: "Missing required fields" });
     }
     const product = await productService.create({ name, description, price, stock,imageUrl: req.body.imageUrl });
@@ -44,8 +44,9 @@ productRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
 // Update product (Admin only)
 productRouter.put("/:id", requireAuth, requireAdmin, async (req, res, next) => {
   try {
-    const { name, description, price, stock } = req.body;
-    const product = await productService.update(req.params.id, { name, description, price, stock });
+    // const { name, description, price, stock } = req.body;
+    const { name, description, price, stock, imageUrl } = req.body; // imageUrl yahan add karein
+    const product = await productService.update(req.params.id, { name, description, price, stock, imageUrl }); // imageUrl yahan pass karein
     res.json({ product });
   } catch (err: any) {
     if (err.code === "P2025") {
